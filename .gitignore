@@ -1,6 +1,4 @@
 node_modules/
-dist/
-build/
 .env
 .env.local
 *.log
@@ -9,3 +7,7 @@ coverage/
 apps/api/generated/
 .expo/
 .next/
+# NOTE : dist/ et build/ ne sont PAS ignorés ici volontairement.
+# Render exclut de l'artefact déployé tout fichier matchant .gitignore,
+# ce qui cassait le démarrage (dist/main introuvable) même si dist/
+# n'est jamais commité (il est recréé par npm run api:build).
