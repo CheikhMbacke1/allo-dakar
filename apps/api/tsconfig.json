@@ -16,9 +16,6 @@
     "noImplicitAny": true,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@allo-dakar/shared": ["../../packages/shared/src"]
-    }
+    "noFallthroughCasesInSwitch": false
   }
 }
