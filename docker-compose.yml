@@ -1,0 +1,22 @@
+version: "3.9"
+
+# Base de données locale pour le développement uniquement.
+# En production, on utilise Neon (Postgres serverless managé) — voir
+# apps/api/.env.example pour la chaîne de connexion Neon.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: allo-dakar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: allo_dakar
+    ports:
+      - "5432:5432"
+    volumes:
+      - allo_dakar_pg_data:/var/lib/postgresql/data
+
+volumes:
+  allo_dakar_pg_data:

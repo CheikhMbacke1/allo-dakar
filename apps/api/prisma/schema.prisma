@@ -1,0 +1,228 @@
+// Schéma Prisma — Allo Dakar
+// Base cible : PostgreSQL (Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  client
+  chauffeur
+  admin
+  support
+}
+
+enum DriverStatus {
+  en_attente
+  valide
+  suspendu
+  rejete
+}
+
+enum VehicleType {
+  berline
+  suv
+  minibus
+  autre
+}
+
+enum BookingStatus {
+  demandee
+  en_attente
+  confirmee
+  chauffeur_en_route
+  chauffeur_arrive
+  en_cours
+  terminee
+  annulee
+}
+
+model User {
+  id            String   @id @default(uuid())
+  phone         String   @unique
+  phoneVerified Boolean  @default(false) @map("phone_verified")
+  fullName      String   @map("full_name")
+  role          UserRole @default(client)
+  avatarUrl     String?  @map("avatar_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  driverProfile      DriverProfile?
+  vehicles           Vehicle[]
+  availabilities     Availability[]
+  bookings           Booking[]        @relation("ClientBookings")
+  sentMessages       Message[]
+  givenRatings       Rating[]         @relation("RatingsGiven")
+  receivedRatings    Rating[]         @relation("RatingsReceived")
+  preferences        UserPreference?
+  notifications      Notification[]
+  otpCodes           OtpCode[]
+
+  @@map("users")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  phone     String
+  code      String
+  expiresAt DateTime @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@map("otp_codes")
+}
+
+model DriverProfile {
+  userId              String    @id @map("user_id")
+  idDocumentUrl        String?   @map("id_document_url")
+  licenseDocumentUrl   String?   @map("license_document_url")
+  status               DriverStatus @default(en_attente)
+  ratingAvg            Decimal   @default(0) @db.Decimal(2, 1) @map("rating_avg")
+  ratingCount          Int       @default(0) @map("rating_count")
+  bio                  String?
+  validatedAt          DateTime? @map("validated_at")
+  validatedBy          String?   @map("validated_by")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("driver_profiles")
+}
+
+model Vehicle {
+  id                  String      @id @default(uuid())
+  driverId            String      @map("driver_id")
+  brand               String?
+  model                String?
+  year                 Int?
+  color                String?
+  plateNumber          String      @map("plate_number")
+  seats                Int
+  vehicleType          VehicleType @default(berline) @map("vehicle_type")
+  insuranceDocUrl      String?     @map("insurance_doc_url")
+  registrationDocUrl   String?     @map("registration_doc_url")
+  photos               String[]
+  isValidated          Boolean     @default(false) @map("is_validated")
+  createdAt            DateTime    @default(now()) @map("created_at")
+
+  driver         User           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  availabilities Availability[]
+
+  @@map("vehicles")
+}
+
+model Availability {
+  id                    String    @id @default(uuid())
+  driverId              String    @map("driver_id")
+  vehicleId             String?   @map("vehicle_id")
+  originCity            String    @map("origin_city")
+  originZone            String?   @map("origin_zone")
+  destinationCity       String    @map("destination_city")
+  travelDate            DateTime  @map("travel_date") @db.Date
+  departureTime         DateTime  @map("departure_time") @db.Time
+  availabilityEndTime   DateTime? @map("availability_end_time") @db.Time
+  seatsTotal            Int       @map("seats_total")
+  seatsAvailable        Int       @map("seats_available")
+  pricePerSeat          Decimal   @map("price_per_seat") @db.Decimal(10, 2)
+  homePickupAvailable   Boolean   @default(false) @map("home_pickup_available")
+  pickupZones           String[]  @map("pickup_zones")
+  notes                 String?
+  isCancelled           Boolean   @default(false) @map("is_cancelled")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  driver   User      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle?  @relation(fields: [vehicleId], references: [id])
+  bookings Booking[]
+
+  @@index([originCity, destinationCity, travelDate])
+  @@map("availabilities")
+}
+
+model Booking {
+  id                  String        @id @default(uuid())
+  availabilityId      String        @map("availability_id")
+  clientId            String        @map("client_id")
+  seatsBooked         Int           @default(1) @map("seats_booked")
+  status              BookingStatus @default(demandee)
+  pickupAddress       String?       @map("pickup_address")
+  pickupLat           Float?        @map("pickup_lat")
+  pickupLng           Float?        @map("pickup_lng")
+  pickupInstructions  String?       @map("pickup_instructions")
+  priceTotal          Decimal?      @map("price_total") @db.Decimal(10, 2)
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  availability Availability @relation(fields: [availabilityId], references: [id])
+  client       User         @relation("ClientBookings", fields: [clientId], references: [id])
+  messages     Message[]
+  ratings      Rating[]
+
+  @@index([clientId, status])
+  @@map("bookings")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  bookingId String   @map("booking_id")
+  senderId  String   @map("sender_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Rating {
+  id           String   @id @default(uuid())
+  bookingId    String   @map("booking_id")
+  ratedBy      String   @map("rated_by")
+  ratedUserId  String   @map("rated_user_id")
+  score        Int
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  booking    Booking @relation(fields: [bookingId], references: [id])
+  ratedByUser User   @relation("RatingsGiven", fields: [ratedBy], references: [id])
+  ratedUser   User   @relation("RatingsReceived", fields: [ratedUserId], references: [id])
+
+  @@unique([bookingId, ratedBy])
+  @@map("ratings")
+}
+
+model UserPreference {
+  userId                String       @id @map("user_id")
+  favoriteCities        String[]     @map("favorite_cities")
+  frequentDestinations  String[]     @map("frequent_destinations")
+  preferredDays         String[]     @map("preferred_days")
+  maxBudget             Decimal?     @map("max_budget") @db.Decimal(10, 2)
+  preferredVehicleType  VehicleType? @map("preferred_vehicle_type")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String?
+  body      String?
+  type      String
+  relatedId String?   @map("related_id")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
