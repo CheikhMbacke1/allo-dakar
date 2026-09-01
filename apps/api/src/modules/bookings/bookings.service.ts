@@ -30,6 +30,9 @@ export class BookingsService {
       if (!availability || availability.isCancelled) {
         throw new NotFoundException('Disponibilité introuvable ou annulée.');
       }
+      if (availability.driverId === clientId) {
+        throw new BadRequestException('Un chauffeur ne peut pas réserver sa propre disponibilité.');
+      }
       if (availability.seatsAvailable < dto.seatsBooked) {
         throw new BadRequestException('Places insuffisantes pour cette disponibilité.');
       }

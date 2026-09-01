@@ -15,6 +15,18 @@ function toTimeDate(hhmm: string): Date {
   return new Date(Date.UTC(1970, 0, 1, h, m));
 }
 
+// Durée par défaut supposée d'un trajet quand le chauffeur n'a pas précisé
+// d'heure de fin de disponibilité, pour la détection de chevauchement.
+const DEFAULT_TRIP_DURATION_MINUTES = 120;
+
+export function timeToMinutes(date: Date): number {
+  return date.getUTCHours() * 60 + date.getUTCMinutes();
+}
+
+export function rangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
+  return startA < endB && startB < endA;
+}
+
 @Injectable()
 export class AvailabilitiesService {
   constructor(
@@ -35,6 +47,37 @@ export class AvailabilitiesService {
       if (!vehicle || vehicle.driverId !== driverId) {
         throw new BadRequestException("Véhicule invalide pour ce chauffeur.");
       }
+    }
+
+    // Un chauffeur ne peut pas être à deux endroits en même temps : on
+    // rejette toute nouvelle disponibilité qui chevaucherait, le même jour,
+    // une disponibilité déjà active de ce chauffeur.
+    const newStart = timeToMinutes(toTimeDate(dto.departureTime));
+    const newEnd = dto.availabilityEndTime
+      ? timeToMinutes(toTimeDate(dto.availabilityEndTime))
+      : newStart + DEFAULT_TRIP_DURATION_MINUTES;
+
+    const sameDayAvailabilities = await this.prisma.availability.findMany({
+      where: {
+        driverId,
+        travelDate: new Date(dto.travelDate),
+        isCancelled: false,
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasOverlap = sameDayAvailabilities.some((existing: any) => {
+      const existingStart = timeToMinutes(existing.departureTime);
+      const existingEnd = existing.availabilityEndTime
+        ? timeToMinutes(existing.availabilityEndTime)
+        : existingStart + DEFAULT_TRIP_DURATION_MINUTES;
+      return rangesOverlap(newStart, newEnd, existingStart, existingEnd);
+    });
+
+    if (hasOverlap) {
+      throw new BadRequestException(
+        'Cette disponibilité chevauche une autre disponibilité déjà publiée ce jour-là.',
+      );
     }
 
     const availability = await this.prisma.availability.create({
@@ -74,20 +117,35 @@ export class AvailabilitiesService {
   }
 
   async search(dto: SearchAvailabilityDto) {
-    return this.prisma.availability.findMany({
-      where: {
-        originCity: { equals: dto.originCity, mode: 'insensitive' },
-        destinationCity: { equals: dto.destinationCity, mode: 'insensitive' },
-        travelDate: dto.travelDate ? new Date(dto.travelDate) : undefined,
-        isCancelled: false,
-        seatsAvailable: { gt: 0 },
-      },
-      include: {
-        driver: { select: { id: true, fullName: true, driverProfile: true } },
-        vehicle: true,
-      },
-      orderBy: { departureTime: 'asc' },
-    });
+    const page = dto.page ?? 1;
+    const pageSize = dto.pageSize ?? 20;
+
+    const where = {
+      originCity: { equals: dto.originCity, mode: 'insensitive' as const },
+      destinationCity: { equals: dto.destinationCity, mode: 'insensitive' as const },
+      travelDate: dto.travelDate ? new Date(dto.travelDate) : undefined,
+      isCancelled: false,
+      seatsAvailable: { gt: 0 },
+    };
+
+    const [results, total] = await Promise.all([
+      this.prisma.availability.findMany({
+        where,
+        include: {
+          driver: { select: { id: true, fullName: true, driverProfile: true } },
+          vehicle: true,
+        },
+        orderBy: { departureTime: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.availability.count({ where }),
+    ]);
+
+    return {
+      results,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    };
   }
 
   async listMine(driverId: string) {
