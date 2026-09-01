@@ -57,7 +57,20 @@ export default function ReservationsChauffeurPage() {
                 <div className="mt-3 space-y-1 font-body text-sm text-encre/70">
                   <p>Client : {r.client?.fullName} · {r.client?.phone}</p>
                   <p>{r.seatsBooked} place(s) · {Number(r.priceTotal).toLocaleString('fr-FR')} F</p>
-                  {r.pickupAddress && <p>📍 Prise en charge : {r.pickupAddress}</p>}
+                  {r.pickupLat != null && r.pickupLng != null && (
+                    <p>
+                      📍{' '}
+                      <a
+                        href={`https://www.google.com/maps?q=${r.pickupLat},${r.pickupLng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-atlantique underline"
+                      >
+                        Voir le point de prise en charge sur la carte
+                      </a>
+                    </p>
+                  )}
+                  {r.pickupInstructions && <p>💬 {r.pickupInstructions}</p>}
                 </div>
                 <div className="mt-4 flex gap-3">
                   {action && (

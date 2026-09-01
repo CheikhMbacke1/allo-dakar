@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { TrajetLigne } from './trajet-ligne';
+import { MapPicker } from './map-picker';
 import { api, ApiError } from '@/lib/api';
 import type { Availability } from '@/lib/types';
 import { useSession } from '@/lib/session';
@@ -11,7 +12,9 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
   const { user } = useSession();
   const router = useRouter();
   const [reservation, setReservation] = useState(false);
-  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupInstructions, setPickupInstructions] = useState('');
+  const [pickupLat, setPickupLat] = useState<number | undefined>();
+  const [pickupLng, setPickupLng] = useState<number | undefined>();
   const [seatsBooked, setSeatsBooked] = useState(1);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -29,7 +32,9 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
       await api.post('/bookings', {
         availabilityId: dispo.id,
         seatsBooked,
-        pickupAddress: pickupAddress || undefined,
+        pickupLat,
+        pickupLng,
+        pickupInstructions: pickupInstructions || undefined,
       });
       setSucces(true);
     } catch (err) {
@@ -100,13 +105,23 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
             />
           </div>
           {dispo.homePickupAvailable && (
+            <MapPicker
+              initialLat={pickupLat}
+              initialLng={pickupLng}
+              onChange={(lat, lng) => {
+                setPickupLat(lat);
+                setPickupLng(lng);
+              }}
+            />
+          )}
+          {dispo.homePickupAvailable && (
             <div>
-              <label className="etiquette">Adresse ou point de prise en charge</label>
+              <label className="etiquette">Instructions complémentaires (optionnel)</label>
               <input
                 type="text"
-                value={pickupAddress}
-                onChange={(e) => setPickupAddress(e.target.value)}
-                placeholder="Ex : Devant la station Total de Liberté 6"
+                value={pickupInstructions}
+                onChange={(e) => setPickupInstructions(e.target.value)}
+                placeholder="Ex : Portail bleu, sonner deux fois"
                 className="champ"
               />
             </div>

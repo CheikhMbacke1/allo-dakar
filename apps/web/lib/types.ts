@@ -51,6 +51,9 @@ export interface Booking {
   seatsBooked: number;
   priceTotal: string;
   pickupAddress?: string | null;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  pickupInstructions?: string | null;
   createdAt: string;
   availability: Availability;
   client?: { id: string; fullName: string; phone: string };
