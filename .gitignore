@@ -9,3 +9,6 @@ coverage/
 apps/api/generated/
 .expo/
 .next/
+apps/web/.next/
+apps/web/next-env.d.ts
+apps/web/.vercel/

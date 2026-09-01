@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-sable text-encre font-body antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+  /* Focus clavier visible partout, sans exception */
+  :focus-visible {
+    outline: 3px solid theme('colors.jaune');
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Bloc plat à contour épais : le langage visuel du "panneau peint",
+     utilisé partout à la place des cartes SaaS à ombre douce. */
+  .panneau {
+    @apply border-2 border-encre bg-white;
+  }
+
+  .btn-primaire {
+    @apply inline-flex items-center justify-center border-2 border-encre bg-jaune px-5 py-2.5
+           font-body font-semibold text-encre transition-colors hover:bg-jaune-dark
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondaire {
+    @apply inline-flex items-center justify-center border-2 border-encre bg-transparent px-5 py-2.5
+           font-body font-semibold text-encre transition-colors hover:bg-encre hover:text-sable
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .champ {
+    @apply w-full border-2 border-encre bg-white px-4 py-2.5 font-body text-encre
+           placeholder:text-encre/40 focus:outline-none;
+  }
+
+  .etiquette {
+    @apply mb-1.5 block font-body text-sm font-medium text-encre/80;
+  }
+}
