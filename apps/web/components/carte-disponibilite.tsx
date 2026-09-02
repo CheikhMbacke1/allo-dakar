@@ -12,6 +12,7 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
   const { user } = useSession();
   const router = useRouter();
   const [reservation, setReservation] = useState(false);
+  const [pickupAddress, setPickupAddress] = useState('');
   const [pickupInstructions, setPickupInstructions] = useState('');
   const [pickupLat, setPickupLat] = useState<number | undefined>();
   const [pickupLng, setPickupLng] = useState<number | undefined>();
@@ -19,6 +20,25 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [succes, setSucces] = useState(false);
+
+  // Géocodage inverse (Nominatim/OpenStreetMap, gratuit, sans clé) : dès
+  // qu'un point est choisi sur la carte, on retrouve une adresse lisible
+  // pour que le chauffeur voie un texte compréhensible plutôt que des
+  // coordonnées brutes. En cas d'échec, les coordonnées seules suffisent
+  // toujours pour le suivi (elles sont envoyées de toute façon).
+  async function selectionnerPoint(lat: number, lng: number) {
+    setPickupLat(lat);
+    setPickupLng(lng);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
+      );
+      const data = await res.json();
+      if (data?.display_name) setPickupAddress(data.display_name);
+    } catch {
+      // Le géocodage est un confort, pas un pré-requis : on continue sans.
+    }
+  }
 
   async function reserver(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +52,7 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
       await api.post('/bookings', {
         availabilityId: dispo.id,
         seatsBooked,
+        pickupAddress: pickupAddress || undefined,
         pickupLat,
         pickupLng,
         pickupInstructions: pickupInstructions || undefined,
@@ -105,14 +126,14 @@ export function CarteDisponibilite({ dispo }: { dispo: Availability }) {
             />
           </div>
           {dispo.homePickupAvailable && (
-            <MapPicker
-              initialLat={pickupLat}
-              initialLng={pickupLng}
-              onChange={(lat, lng) => {
-                setPickupLat(lat);
-                setPickupLng(lng);
-              }}
-            />
+            <>
+              <MapPicker initialLat={pickupLat} initialLng={pickupLng} onChange={selectionnerPoint} />
+              {pickupAddress && (
+                <p className="-mt-2 font-body text-xs text-encre/60">
+                  📍 Adresse détectée : {pickupAddress}
+                </p>
+              )}
+            </>
           )}
           {dispo.homePickupAvailable && (
             <div>
