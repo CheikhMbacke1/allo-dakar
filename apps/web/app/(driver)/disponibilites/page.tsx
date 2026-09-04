@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { TrajetLigne } from '@/components/trajet-ligne';
+import { OriginPicker } from '@/components/origin-picker';
 import type { Availability } from '@/lib/types';
 
 interface Vehicle {
@@ -19,6 +20,7 @@ export default function DisponibilitesPage() {
   const [envoi, setEnvoi] = useState(false);
 
   const [originCity, setOriginCity] = useState('');
+  const [originZone, setOriginZone] = useState('');
   const [destinationCity, setDestinationCity] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [departureTime, setDepartureTime] = useState('');
@@ -43,6 +45,7 @@ export default function DisponibilitesPage() {
     try {
       await api.post('/availabilities', {
         originCity,
+        originZone: originZone || undefined,
         destinationCity,
         travelDate,
         departureTime,
@@ -86,13 +89,24 @@ export default function DisponibilitesPage() {
             </p>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="etiquette">Ville de départ</label>
-              <input required className="champ" value={originCity} onChange={(e) => setOriginCity(e.target.value)} placeholder="Dakar" />
-            </div>
+            <OriginPicker
+              city={originCity}
+              onCityChange={setOriginCity}
+              zone={originZone}
+              onZoneChange={setOriginZone}
+            />
             <div>
               <label className="etiquette">Destination</label>
               <input required className="champ" value={destinationCity} onChange={(e) => setDestinationCity(e.target.value)} placeholder="Touba" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="etiquette">Zone / quartier de départ (optionnel)</label>
+              <input
+                className="champ"
+                value={originZone}
+                onChange={(e) => setOriginZone(e.target.value)}
+                placeholder="Ex : Sacré-Cœur 3"
+              />
             </div>
             <div>
               <label className="etiquette">Date</label>
