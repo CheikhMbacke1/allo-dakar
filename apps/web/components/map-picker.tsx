@@ -8,6 +8,8 @@ interface MapPickerProps {
   initialLat?: number;
   initialLng?: number;
   onChange: (lat: number, lng: number) => void;
+  /** Libellé affiché au-dessus de la carte (par défaut : point de prise en charge). */
+  label?: string;
 }
 
 // Centre par défaut : Dakar. Le repère se recentre automatiquement dès
@@ -15,7 +17,7 @@ interface MapPickerProps {
 // position exacte via la géolocalisation du navigateur.
 const DAKAR_CENTRE = { lat: 14.6937, lng: -17.4441 };
 
-export function MapPicker({ initialLat, initialLng, onChange }: MapPickerProps) {
+export function MapPicker({ initialLat, initialLng, onChange, label = 'Point de prise en charge exact' }: MapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
@@ -114,7 +116,7 @@ export function MapPicker({ initialLat, initialLng, onChange }: MapPickerProps) 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <label className="etiquette !mb-0">Point de prise en charge exact</label>
+        <label className="etiquette !mb-0">{label}</label>
         <button
           type="button"
           onClick={utiliserMaPosition}

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import type { Availability } from '@/lib/types';
 import { CarteDisponibilite } from '@/components/carte-disponibilite';
+import { OriginPicker } from '@/components/origin-picker';
 
 interface ResultatsPagines {
   results: Availability[];
@@ -43,16 +44,8 @@ function RechercheFormulaire() {
 
       <form onSubmit={rechercher} className="panneau mb-10 bg-white p-6">
         <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className="etiquette">Départ</label>
-            <input
-              required
-              className="champ"
-              value={originCity}
-              onChange={(e) => setOriginCity(e.target.value)}
-              placeholder="Dakar"
-            />
-          </div>
+          <OriginPicker label="Départ" city={originCity} onCityChange={setOriginCity} />
+
           <div>
             <label className="etiquette">Destination</label>
             <input
